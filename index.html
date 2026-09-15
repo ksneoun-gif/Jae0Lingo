@@ -18,7 +18,6 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            touch-action: none; /* 화면 전체 드래그 차단 */
         }
 
         /* 모바일 프레임 고정 (100dvh로 사파리 하단바 대응) */
@@ -35,12 +34,20 @@
             box-shadow: 0 0 40px rgba(0,0,0,0.5);
         }
 
-        /* 2D 월드 맵 (스크롤 없이 100% 꽉 채움) */
+        /* 2D 월드 맵 (스크롤 허용) */
         #mapViewport {
             flex: 1;
             position: relative;
             background: linear-gradient(to bottom, #1e293b, #bae6fd);
-            overflow: hidden; /* 맵 스크롤 절대 금지 */
+            overflow-y: auto;  /* 스크롤 허용 */
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #mapWorld {
+            position: relative;
+            width: 100%;
+            /* height는 JS에서 실시간 계산하여 부여됨 */
         }
 
         .biome-map {
@@ -66,16 +73,16 @@
         .wrong-ans { background-color: #ffe4e6 !important; border-color: #f43f5e !important; color: #9f1239 !important; border-width: 2px !important; }
         .selected { border-color: #3b82f6 !important; background-color: #eff6ff !important; border-width: 2px !important; border-bottom: 4px solid #1d4ed8 !important; color: #1d4ed8; }
 
-        /* 스테이지 원형 노드 (크기 축소 및 반응형) */
+        /* 스테이지 원형 노드 */
         .stage-btn {
-            width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 20px; font-weight: 900; border: 3px solid #ffffff; transition: transform 0.2s;
+            width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: 900; border: 3px solid #ffffff; transition: transform 0.2s;
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
         .stage-btn.locked { background: #94a3b8; color: #cbd5e1; border-color: #cbd5e1; }
         .stage-btn.cleared { background: #eab308; color: #ffffff; border-color: #fef08a; }
         .stage-btn.current { background: #3b82f6; color: #ffffff; border-color: #bfdbfe; animation: pulse 1.5s infinite; }
-        .stage-btn.boss { width: 60px; height: 60px; border-radius: 16px; font-size: 24px; }
+        .stage-btn.boss { width: 70px; height: 70px; border-radius: 16px; font-size: 28px; }
         .stage-btn.boss.current { background: #ef4444; border-color: #fecaca; }
 
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
@@ -128,7 +135,7 @@
             </div>
         </div>
 
-        <!-- ================= 화면 2: 월드 맵 (원스크린 고정) ================= -->
+        <!-- ================= 화면 2: 월드 맵 ================= -->
         <div id="screenMap" class="hidden flex-1 flex-col h-full relative bg-slate-900">
             <!-- 상단 바 -->
             <div class="h-14 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 z-30 shrink-0">
@@ -142,18 +149,20 @@
                 </div>
             </div>
 
-            <!-- 스크롤 없는 맵 뷰포트 -->
+            <!-- 스크롤 맵 뷰포트 -->
             <div id="mapViewport">
-                <div class="biome-map"></div>
-                <svg class="absolute top-0 left-0 w-full h-full pointer-events-none">
-                    <path id="pathBackground" d="" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="12" stroke-linecap="round" stroke-dasharray="8 8" />
-                    <path id="pathFill" d="" fill="none" stroke="#facc15" stroke-width="12" stroke-linecap="round" />
-                </svg>
-                <div id="decorationsLayer" class="absolute inset-0 pointer-events-none"></div>
-                <div id="nodesContainer" class="absolute inset-0"></div>
-                <!-- 맵 위 아바타 -->
-                <div id="avatarContainer" class="absolute" style="z-index: 50; transform: translate(-50%, -50%); transition: left 0.1s, top 0.1s;">
-                    <div id="mapAvatar" class="text-4xl drop-shadow-md" style="transform: translate(-50%, -50%);">🦌</div>
+                <div id="mapWorld">
+                    <div class="biome-map"></div>
+                    <svg class="absolute top-0 left-0 w-full h-full pointer-events-none">
+                        <path id="pathBackground" d="" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="14" stroke-linecap="round" stroke-dasharray="10 10" />
+                        <path id="pathFill" d="" fill="none" stroke="#facc15" stroke-width="14" stroke-linecap="round" />
+                    </svg>
+                    <div id="decorationsLayer" class="absolute inset-0 pointer-events-none"></div>
+                    <div id="nodesContainer" class="absolute inset-0"></div>
+                    <!-- 맵 위 아바타 -->
+                    <div id="avatarContainer" class="absolute" style="z-index: 50; transform: translate(-50%, -50%); transition: left 0.1s, top 0.1s;">
+                        <div id="mapAvatar" class="text-5xl drop-shadow-md" style="transform: translate(-50%, -50%);">🦌</div>
+                    </div>
                 </div>
             </div>
 
@@ -165,9 +174,8 @@
             </div>
         </div>
 
-        <!-- ================= 화면 3: 전투 (팝업 완전 제거, 즉시 피드백) ================= -->
+        <!-- ================= 화면 3: 전투 & 팝업 피드백 ================= -->
         <div id="screenBattle" class="hidden flex-1 flex-col h-full bg-slate-50 p-4 justify-between relative">
-            <!-- 상단 상태바 -->
             <div class="flex items-center justify-between pt-1 mb-2 shrink-0">
                 <button type="button" onclick="exitBattlePrompt(false)" class="text-slate-400 font-black text-xs px-2 py-1 hover:text-slate-600">✕ 도망</button>
                 <div class="flex space-x-1.5" id="battleProgressDots"></div>
@@ -190,7 +198,7 @@
                 </div>
             </div>
 
-            <!-- 문제 & 옵션 (넘칠 경우 내부 스크롤 허용) -->
+            <!-- 문제 & 옵션 -->
             <div class="flex-1 flex flex-col justify-end mb-2 overflow-y-auto" style="touch-action: pan-y;">
                 <div class="mb-3">
                     <span id="labelQuestionTag" class="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-md border border-blue-200">개념</span>
@@ -202,6 +210,16 @@
             <!-- 공격 버튼 -->
             <div class="pt-2 shrink-0 z-10">
                 <button type="button" id="btnSubmitAnswer" onclick="handleAnswerSubmit()" class="duo-btn w-full bg-slate-300 text-slate-500 font-black text-lg py-4 rounded-2xl" disabled>공격하기 ⚔️</button>
+            </div>
+
+            <!-- 피드백 팝업 (해설 표시) -->
+            <div id="modalFeedback" class="absolute bottom-0 left-0 right-0 p-5 transform translate-y-full transition-transform duration-300 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] z-50">
+                <div class="flex items-center space-x-3 mb-2">
+                    <span id="iconFeedback" class="text-2xl drop-shadow">✨</span>
+                    <h3 id="titleFeedback" class="text-xl font-black drop-shadow-sm">결과</h3>
+                </div>
+                <p id="expFeedback" class="text-xs font-bold opacity-90 leading-relaxed mb-4 text-gray-700">해설</p>
+                <button type="button" id="btnFeedbackContinue" onclick="handleFeedbackNext()" class="duo-btn w-full bg-white font-black text-base py-3.5 rounded-xl shadow">다음으로</button>
             </div>
         </div>
 
@@ -295,16 +313,16 @@
             ]}
         ];
 
-        let userState = { name: '모험가', currentStage: 1, previousStage: 1, stars: 0, xp: 0, hp: 100, currentQueue: [], stageCorrectCount: 0 };
+        let userState = { name: '모험가', currentStage: 1, previousStage: 1, stars: 0, xp: 0, hp: 100, currentQueue: [], stageCorrectCount: 0, lastAnswerCorrect: false };
         const TOTAL_STAGE_QUESTIONS = 3;
         let selectedAnswerIdx = null;
         let isTransitioning = false;
         let mapWidth = 0;
         let mapHeight = 0;
 
-        // 원스크린 맞춤형 좌표 계산 (스크롤 불필요)
+        // ★ 요구사항 반영: 스크롤을 허용하되, 실시간 높이(window.innerHeight의 4배) 계산은 유지
         function getStageNodeCoords(stageFloat, w, h) {
-            const marginY = 60; // 상하 여백 축소
+            const marginY = 150; 
             const usableH = h - (marginY * 2);
             const stepY = usableH / 9; 
             const y = (h - marginY) - (stageFloat * stepY);
@@ -323,13 +341,17 @@
             document.getElementById('screenMap').classList.remove('hidden');
             document.getElementById('screenMap').classList.add('flex');
 
-            setTimeout(buildWorldMap, 50); // flex 렌더링 후 크기 측정
+            setTimeout(buildWorldMap, 50);
         }
 
         function buildWorldMap() {
             const mapArea = document.getElementById('mapViewport');
             mapWidth = mapArea.clientWidth || 430;
-            mapHeight = mapArea.clientHeight || window.innerHeight;
+            // 한 화면이 아닌 4배수 스크롤 영역으로 실시간 계산
+            mapHeight = (window.innerHeight || document.documentElement.clientHeight) * 4; 
+            
+            const mapWorld = document.getElementById('mapWorld');
+            mapWorld.style.height = `${mapHeight}px`;
 
             const nodesContainer = document.getElementById('nodesContainer');
             const decorLayer = document.getElementById('decorationsLayer');
@@ -386,7 +408,7 @@
 
         function renderBiomeDecorations(container, w, h) {
             const decors = [['🌋', '⛰️', '🔥'], ['🌊', '🏖️', '⛵'], ['🌲', '🌳', '🍄']];
-            for(let i=0; i<25; i++) {
+            for(let i=0; i<35; i++) {
                 const y = Math.random() * h;
                 const x = (i % 2 === 0) ? (w * 0.1) + (Math.random()*30) : (w * 0.8) - (Math.random()*30);
                 
@@ -403,10 +425,12 @@
         }
 
         function placeAvatarAt(stageFloat) {
-            const mapAvatar = document.getElementById('mapAvatar');
             const pt = getStageNodeCoords(stageFloat, mapWidth, mapHeight);
             document.getElementById('avatarContainer').style.left = `${pt.x}px`;
             document.getElementById('avatarContainer').style.top = `${pt.y}px`;
+            setTimeout(() => {
+                document.getElementById('avatarContainer').scrollIntoView({ behavior: 'auto', block: 'center' });
+            }, 50);
         }
 
         function animateAvatarWalk(startFloat, endFloat, duration) {
@@ -430,7 +454,8 @@
                     
                     const pt = getStageNodeCoords(currentFloat, mapWidth, mapHeight);
                     avatarContainer.style.left = `${pt.x}px`; avatarContainer.style.top = `${pt.y}px`;
-                    
+                    avatarContainer.scrollIntoView({ behavior: 'auto', block: 'center' });
+
                     if (progress < 1) {
                         requestAnimationFrame(step);
                     } else {
@@ -461,14 +486,16 @@
             }
         }
 
-        // --- 4. 전투 (팝업 삭제, 즉시 자동 진행) ---
+        // --- 4. 전투 (팝업 복구 및 버그 해결) ---
         function enterStage() {
             const stageConfig = STAGE_CONFIG[userState.currentStage - 1];
             userState.currentQueue = JSON.parse(JSON.stringify(stageConfig.questions)); 
             userState.stageCorrectCount = 0; userState.hp = 100;
             
+            document.getElementById('modalFeedback').classList.add('translate-y-full');
             document.getElementById('screenMap').classList.add('hidden'); document.getElementById('screenMap').classList.remove('flex');
             document.getElementById('screenBattle').classList.remove('hidden'); document.getElementById('screenBattle').classList.add('flex');
+            
             renderQuestionBattle();
         }
 
@@ -481,6 +508,9 @@
         }
 
         function renderQuestionBattle() {
+            // 이중 안전 장치: 모달이 확실히 숨겨졌는지 검증
+            document.getElementById('modalFeedback').classList.add('translate-y-full');
+
             const q = userState.currentQueue[0]; 
             const conf = STAGE_CONFIG[userState.currentStage - 1];
             document.getElementById('battleMonster').innerText = conf.monster; 
@@ -509,13 +539,13 @@
                 container.appendChild(optBtn);
             });
             selectedAnswerIdx = null; updateSubmitButton();
-            isTransitioning = false;
+            isTransitioning = false; // 클릭 잠금 완전 해제
         }
 
         function selectOption(idx, el) {
-            if(isTransitioning) return;
+            if(isTransitioning) return; // 팝업 애니메이션 진행 중 클릭 차단
             selectedAnswerIdx = idx;
-            document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
+            document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected', 'correct-ans', 'wrong-ans'));
             el.classList.add('selected'); updateSubmitButton();
         }
 
@@ -528,32 +558,32 @@
             }
         }
 
-        // 팝업 없이 즉각 시각적 피드백 후 자동 딜레이 진행
+        // 사용자가 공격하기 버튼 누름
         function handleAnswerSubmit() {
             if(selectedAnswerIdx === null || isTransitioning) return; 
-            isTransitioning = true;
+            isTransitioning = true; // 트랜지션 락
             document.getElementById('btnSubmitAnswer').disabled = true;
             
             const q = userState.currentQueue[0];
             const isCorrect = (selectedAnswerIdx === q.answer);
+            userState.lastAnswerCorrect = isCorrect;
             
             const mEl = document.getElementById('battleMonster');
             const battleScreen = document.getElementById('screenBattle');
             const options = document.querySelectorAll('.option-card');
 
-            // 버튼 색상 즉시 변경 피드백
+            // 클릭한 버튼 색상 피드백
             options.forEach((opt, idx) => {
                 opt.classList.remove('selected');
-                if (idx === q.answer) {
-                    opt.classList.add('correct-ans');
-                } else if (idx === selectedAnswerIdx && !isCorrect) {
-                    opt.classList.add('wrong-ans');
-                }
+                if (idx === q.answer) opt.classList.add('correct-ans');
+                else if (idx === selectedAnswerIdx && !isCorrect) opt.classList.add('wrong-ans');
             });
 
             if(isCorrect) {
                 userState.stageCorrectCount++; userState.xp += 20;
                 mEl.classList.remove('monster-hit'); void mEl.offsetWidth; mEl.classList.add('monster-hit');
+                // 300ms 이후 해설 팝업 노출
+                setTimeout(() => { showFeedbackModal(true, q.exp); }, 300);
             } else {
                 mEl.classList.remove('monster-attack'); battleScreen.classList.remove('player-damage');
                 void mEl.offsetWidth; mEl.classList.add('monster-attack');
@@ -561,32 +591,84 @@
                     battleScreen.classList.add('player-damage');
                     userState.hp = Math.max(0, userState.hp - 34);
                     updateHpBarUI();
+                    setTimeout(() => { showFeedbackModal(false, q.exp); }, 400); 
                 }, 300); 
             }
+        }
 
-            // 1.5초 딜레이 후 자동 다음 진행
-            setTimeout(() => {
-                battleScreen.classList.remove('player-damage');
+        function showFeedbackModal(isCorrect, expText) {
+            const modal = document.getElementById('modalFeedback');
+            const title = document.getElementById('titleFeedback');
+            const icon = document.getElementById('iconFeedback');
+            const exp = document.getElementById('expFeedback');
+            const btn = document.getElementById('btnFeedbackContinue');
+            
+            btn.disabled = false;
+            modal.classList.remove('translate-y-full');
+
+            if(isCorrect) {
+                modal.className = modal.className.replace(/bg-\w+-100|text-\w+-900/g, ''); 
+                modal.classList.add('bg-emerald-100', 'text-emerald-900');
+                icon.innerText = '⚔️'; 
+                title.innerText = '정답입니다!';
+                btn.className = 'duo-btn w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base py-3.5 rounded-xl shadow';
+                btn.innerText = "다음으로";
+            } else {
+                modal.className = modal.className.replace(/bg-\w+-100|text-\w+-900/g, ''); 
+                modal.classList.add('bg-rose-100', 'text-rose-900');
                 
+                if(userState.hp <= 0) {
+                    icon.innerText = '☠️'; 
+                    title.innerText = '체력 고갈!';
+                    btn.className = 'duo-btn w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-base py-3.5 rounded-xl shadow';
+                    btn.innerText = "계속하기";
+                    expText += '\n\n(체력이 모두 소진되었습니다...)';
+                } else {
+                    icon.innerText = '🛡️'; 
+                    title.innerText = '오답입니다!';
+                    btn.className = 'duo-btn w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-base py-3.5 rounded-xl shadow';
+                    btn.innerText = "다음으로";
+                }
+            }
+            exp.innerText = expText;
+        }
+
+        // ★ 모달 버그 완벽 차단 로직 (해설 확인 후 다음 단계)
+        function handleFeedbackNext() {
+            const btn = document.getElementById('btnFeedbackContinue');
+            if (btn.disabled) return; 
+            btn.disabled = true; // 더블 클릭 즉시 차단
+
+            // 모달을 숨김
+            document.getElementById('modalFeedback').classList.add('translate-y-full');
+            document.getElementById('screenBattle').classList.remove('player-damage');
+            
+            // 모달이 완전히 화면 밖으로 빠져나간 뒤(300ms)에만 큐 처리
+            setTimeout(() => {
                 if(userState.hp <= 0) {
                     document.getElementById('modalGameOver').classList.remove('hidden');
                     return;
                 }
 
-                const completed = userState.currentQueue.shift();
-                if(!isCorrect) userState.currentQueue.push(completed); // 오답 시 큐 맨 뒤로
+                const completedQuestion = userState.currentQueue.shift(); 
+                if (!userState.lastAnswerCorrect) {
+                    userState.currentQueue.push(completedQuestion);
+                }
 
                 if(userState.currentQueue.length === 0) {
+                    const mEl = document.getElementById('battleMonster');
                     document.getElementById('barMonsterHp').style.width = '0%';
-                    mEl.style.transform = "scale(0) rotate(90deg)"; mEl.style.opacity = "0";
+                    mEl.style.transform = "scale(0) rotate(90deg)"; 
+                    mEl.style.opacity = "0";
                     setTimeout(() => { 
-                        mEl.style.transform = ""; mEl.style.opacity = ""; 
+                        mEl.style.transform = ""; 
+                        mEl.style.opacity = ""; 
                         showStageClearResult(); 
-                    }, 500);
-                } else {
-                    renderQuestionBattle();
+                    }, 600);
+                } else { 
+                    renderQuestionBattle(); 
                 }
-            }, 1500);
+            }, 300); // CSS transition 시간에 맞춘 절대 대기시간
         }
 
         function respawnStage() {
@@ -617,6 +699,7 @@
 
         function forceExitBattle() {
             document.getElementById('modalGameOver').classList.add('hidden');
+            document.getElementById('modalFeedback').classList.add('translate-y-full'); // 잔여 팝업 제거
             document.getElementById('screenBattle').classList.add('hidden'); document.getElementById('screenBattle').classList.remove('flex');
             document.getElementById('screenMap').classList.remove('hidden'); document.getElementById('screenMap').classList.add('flex');
             buildWorldMap();
@@ -627,7 +710,7 @@
             else if(confirm('마을로 돌아가시겠습니까?')) forceExitBattle();
         }
         
-        // 윈도우 크기 변경 시 자동 리빌드
+        // 윈도우 크기 변경 시 자동 리빌드 (스크롤 맵용)
         window.addEventListener('resize', () => {
             if(!document.getElementById('screenMap').classList.contains('hidden')) {
                 buildWorldMap();
