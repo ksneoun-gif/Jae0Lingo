@@ -1,0 +1,1 @@
+module.exports={content:['./index.html','./experience.js'],safelist:['bg-emerald-400','bg-blue-500','bg-slate-200','bg-blue-600','text-white','bg-emerald-100','text-emerald-900','bg-rose-100','text-rose-900','bg-emerald-600','bg-rose-600','bg-slate-300','text-slate-500'],theme:{extend:{}},plugins:[]};
