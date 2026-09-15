@@ -2,21 +2,26 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>재오링고 (Jae-O-Lingo)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
+        
+        /* 모바일 사파리 스크롤 바운스 및 여백 원천 차단 */
         html, body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             background-color: #0f172a; 
-            overflow-x: hidden; 
-            overscroll-behavior-x: none;
+            overflow: hidden; 
+            overscroll-behavior: none;
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
+            touch-action: none; /* 화면 전체 드래그 차단 */
         }
 
+        /* 모바일 프레임 고정 (100dvh로 사파리 하단바 대응) */
         .mobile-shell {
             width: 100%;
             max-width: 430px;
@@ -26,24 +31,16 @@
             display: flex;
             flex-direction: column;
             background: #ffffff;
-            overflow-x: hidden;
+            overflow: hidden;
             box-shadow: 0 0 40px rgba(0,0,0,0.5);
         }
 
+        /* 2D 월드 맵 (스크롤 없이 100% 꽉 채움) */
         #mapViewport {
             flex: 1;
-            overflow-y: auto;      
-            overflow-x: hidden;
-            background: linear-gradient(to bottom, #1e293b, #bae6fd);
-            -webkit-overflow-scrolling: touch;
-        }
-
-        #mapWorld {
             position: relative;
-            width: 100%;
-            height: 3800px; 
-            padding-bottom: 250px;     
-            margin-top: 150px;         
+            background: linear-gradient(to bottom, #1e293b, #bae6fd);
+            overflow: hidden; /* 맵 스크롤 절대 금지 */
         }
 
         .biome-map {
@@ -51,65 +48,73 @@
                 #450a0a 0%, #7f1d1d 15%, #0284c7 35%, 
                 #38bdf8 55%, #15803d 75%, #22c55e 100%
             );
+            width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0;
         }
 
-        .duo-btn { transition: all 0.15s; border-bottom: 4px solid rgba(0,0,0,0.2); cursor: pointer; }
+        /* 공통 UI 버튼 */
+        .duo-btn { transition: all 0.15s; border-bottom: 4px solid rgba(0,0,0,0.2); }
         .duo-btn:active { transform: translateY(4px); border-bottom-width: 0px; margin-bottom: 4px; }
         .duo-btn:disabled { transform: none; border-bottom-width: 4px; opacity: 0.5; cursor: not-allowed; }
 
-        .option-card { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); border-bottom: 4px solid #e2e8f0; cursor: pointer; }
-        .option-card:active { transform: scale(0.96); border-bottom-width: 2px; }
+        /* 선택지 카드 */
+        .option-card { transition: all 0.2s; border-bottom: 4px solid #e2e8f0; cursor: pointer; }
+        .option-card:active { transform: scale(0.97); border-bottom-width: 2px; }
+        
+        /* 정답/오답 하이라이트 애니메이션 용 */
+        .correct-ans { background-color: #d1fae5 !important; border-color: #10b981 !important; color: #065f46 !important; border-width: 2px !important; }
+        .wrong-ans { background-color: #ffe4e6 !important; border-color: #f43f5e !important; color: #9f1239 !important; border-width: 2px !important; }
         .selected { border-color: #3b82f6 !important; background-color: #eff6ff !important; border-width: 2px !important; border-bottom: 4px solid #1d4ed8 !important; color: #1d4ed8; }
 
+        /* 스테이지 원형 노드 (크기 축소 및 반응형) */
         .stage-btn {
-            width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 28px; font-weight: 900; border: 4px solid #ffffff; transition: transform 0.2s;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-            cursor: pointer;
+            width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: 900; border: 3px solid #ffffff; transition: transform 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
-        .stage-btn.locked { background: #94a3b8; color: #cbd5e1; border-color: #cbd5e1; cursor: not-allowed; }
+        .stage-btn.locked { background: #94a3b8; color: #cbd5e1; border-color: #cbd5e1; }
         .stage-btn.cleared { background: #eab308; color: #ffffff; border-color: #fef08a; }
         .stage-btn.current { background: #3b82f6; color: #ffffff; border-color: #bfdbfe; animation: pulse 1.5s infinite; }
-        .stage-btn.boss { width: 84px; height: 84px; border-radius: 20px; }
+        .stage-btn.boss { width: 60px; height: 60px; border-radius: 16px; font-size: 24px; }
         .stage-btn.boss.current { background: #ef4444; border-color: #fecaca; }
 
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-        .avatar-walk { animation: avatarHop 0.35s infinite alternate; }
-        @keyframes avatarHop { from { transform: translateY(0); } to { transform: translateY(-20px); } }
+        .avatar-walk { animation: avatarHop 0.3s infinite alternate; }
+        @keyframes avatarHop { from { transform: translate(-50%, -50%); } to { transform: translate(-50%, -80%); } }
 
-        #battleMonster { font-size: 85px; filter: drop-shadow(0 15px 15px rgba(0,0,0,0.2)); transition: all 0.3s; }
+        /* 전투 몬스터 모션 */
+        #battleMonster { font-size: 70px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2)); transition: all 0.3s; }
         .monster-hit { animation: monsterOuch 0.4s ease; }
         @keyframes monsterOuch {
             0%, 100% { transform: scale(1) translateX(0); filter: brightness(1); }
-            30% { transform: scale(0.9) translateX(-15px) rotate(-10deg); filter: brightness(0.4) sepia(1) hue-rotate(-50deg) saturate(6); }
-            70% { transform: scale(0.9) translateX(15px) rotate(10deg); }
+            30% { transform: scale(0.8) translateX(-15px) rotate(-10deg); filter: brightness(0.4) sepia(1) hue-rotate(-50deg) saturate(6); }
+            70% { transform: scale(0.8) translateX(15px) rotate(10deg); }
         }
         
         .monster-attack { animation: monsterLunge 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         @keyframes monsterLunge {
             0% { transform: scale(1) translateY(0); }
             30% { transform: scale(0.9) translateY(-10px); }
-            60% { transform: scale(1.5) translateY(30px); filter: brightness(1.2) drop-shadow(0 30px 20px rgba(0,0,0,0.4)); }
+            60% { transform: scale(1.4) translateY(30px); filter: brightness(1.2) drop-shadow(0 20px 15px rgba(0,0,0,0.4)); }
             100% { transform: scale(1) translateY(0); }
         }
 
         .player-damage { animation: screenShake 0.4s ease-in-out; }
         @keyframes screenShake {
-            0%, 100% { transform: translateX(0) rotate(0); box-shadow: inset 0 0 0 rgba(225,29,72,0); }
-            20% { transform: translateX(-12px) rotate(-1.5deg); box-shadow: inset 0 0 80px rgba(225,29,72,0.6); }
-            40% { transform: translateX(12px) rotate(1.5deg); }
-            60% { transform: translateX(-12px) rotate(-1.5deg); box-shadow: inset 0 0 80px rgba(225,29,72,0.6); }
-            80% { transform: translateX(12px) rotate(1.5deg); }
+            0%, 100% { transform: translateX(0); box-shadow: inset 0 0 0 rgba(225,29,72,0); }
+            20% { transform: translateX(-10px); box-shadow: inset 0 0 50px rgba(225,29,72,0.5); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); box-shadow: inset 0 0 50px rgba(225,29,72,0.5); }
+            80% { transform: translateX(10px); }
         }
-
-        .hp-bar-inner { transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s; }
+        .hp-bar-inner { transition: width 0.4s ease, background-color 0.4s; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body>
 
     <div class="mobile-shell">
 
-        <!-- 화면 1: 로그인 -->
+        <!-- ================= 화면 1: 로그인 ================= -->
         <div id="screenStart" class="flex-1 flex flex-col justify-between p-6 bg-gradient-to-b from-blue-500 to-sky-900 text-white z-50">
             <div class="flex-1 flex flex-col items-center justify-center text-center">
                 <div class="text-8xl mb-4 animate-bounce drop-shadow-lg">🦌</div>
@@ -119,93 +124,90 @@
             <div class="bg-white/95 backdrop-blur p-6 rounded-3xl text-gray-800 shadow-2xl">
                 <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">모험가 닉네임</label>
                 <input id="inputPlayerName" type="text" placeholder="이름을 입력하세요" class="w-full p-4 mb-4 border-2 border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:border-blue-500 font-bold outline-none text-center text-lg">
-                <button type="button" id="btnStartGame" onclick="handleGameStart()" class="duo-btn w-full bg-blue-600 text-white font-black text-lg py-4 rounded-2xl">모험 떠나기 🚀</button>
+                <button type="button" onclick="handleGameStart()" class="duo-btn w-full bg-blue-600 text-white font-black text-lg py-4 rounded-2xl">모험 떠나기 🚀</button>
             </div>
         </div>
 
-        <!-- 화면 2: 월드 맵 -->
+        <!-- ================= 화면 2: 월드 맵 (원스크린 고정) ================= -->
         <div id="screenMap" class="hidden flex-1 flex-col h-full relative bg-slate-900">
-            <div class="h-16 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-5 z-30 shrink-0 shadow-sm">
+            <!-- 상단 바 -->
+            <div class="h-14 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 z-30 shrink-0">
                 <div class="flex items-center space-x-2">
-                    <span class="text-2xl drop-shadow-sm">🦌</span>
+                    <span class="text-xl drop-shadow-sm">🦌</span>
                     <span id="labelPlayer" class="font-extrabold text-sm text-slate-800">모험가</span>
                 </div>
                 <div class="flex items-center space-x-3 text-sm font-black">
                     <span class="text-amber-500">⭐ <span id="labelTotalStars">0</span></span>
-                    <span class="text-blue-600">⚡ <span id="labelTotalXp">0</span>XP</span>
+                    <span class="text-blue-600">⚡ <span id="labelTotalXp">0</span></span>
                 </div>
             </div>
 
+            <!-- 스크롤 없는 맵 뷰포트 -->
             <div id="mapViewport">
-                <div id="mapWorld">
-                    <div class="biome-map absolute inset-0"></div>
-                    <svg class="absolute top-0 left-0 w-full h-full pointer-events-none">
-                        <path id="pathBackground" d="" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="24" stroke-linecap="round" stroke-dasharray="12 12" />
-                        <path id="pathFill" d="" fill="none" stroke="#facc15" stroke-width="24" stroke-linecap="round" />
-                    </svg>
-                    <div id="decorationsLayer" class="absolute inset-0 pointer-events-none"></div>
-                    <div id="nodesContainer" class="absolute inset-0"></div>
-                    <div id="avatarContainer" class="absolute" style="z-index: 50; transform: translate(-50%, -50%); pointer-events: none;">
-                        <div id="mapAvatar" class="text-5xl drop-shadow-md">🦌</div>
-                    </div>
+                <div class="biome-map"></div>
+                <svg class="absolute top-0 left-0 w-full h-full pointer-events-none">
+                    <path id="pathBackground" d="" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="12" stroke-linecap="round" stroke-dasharray="8 8" />
+                    <path id="pathFill" d="" fill="none" stroke="#facc15" stroke-width="12" stroke-linecap="round" />
+                </svg>
+                <div id="decorationsLayer" class="absolute inset-0 pointer-events-none"></div>
+                <div id="nodesContainer" class="absolute inset-0"></div>
+                <!-- 맵 위 아바타 -->
+                <div id="avatarContainer" class="absolute" style="z-index: 50; transform: translate(-50%, -50%); transition: left 0.1s, top 0.1s;">
+                    <div id="mapAvatar" class="text-4xl drop-shadow-md" style="transform: translate(-50%, -50%);">🦌</div>
                 </div>
             </div>
 
-            <div class="p-4 bg-white/95 backdrop-blur border-t border-slate-200 z-30 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+            <!-- 하단 버튼 -->
+            <div class="p-4 bg-white/95 backdrop-blur border-t border-slate-200 z-30">
                 <button type="button" id="btnEnterCurrentStage" onclick="enterStage()" class="duo-btn w-full bg-blue-500 hover:bg-blue-400 text-white font-black text-lg py-4 rounded-2xl">
                     스테이지 1 입장
                 </button>
             </div>
         </div>
 
-        <!-- 화면 3: 전투 & 문제 풀이 -->
-        <div id="screenBattle" class="hidden flex-1 flex-col h-full bg-slate-50 p-5 justify-between relative">
-            <div class="flex items-center justify-between pt-1 mb-4">
-                <button type="button" onclick="exitBattlePrompt(false)" class="text-slate-400 font-black text-sm p-2 hover:text-slate-600">✕ 도망</button>
-                <div class="flex space-x-2" id="battleProgressDots"></div>
-                <div class="flex flex-col items-end w-24">
-                    <span class="text-[10px] font-black text-slate-500 mb-0.5 tracking-wider">PLAYER HP</span>
-                    <div class="w-full h-3.5 bg-slate-200 rounded-full overflow-hidden shadow-inner border border-slate-300">
+        <!-- ================= 화면 3: 전투 (팝업 완전 제거, 즉시 피드백) ================= -->
+        <div id="screenBattle" class="hidden flex-1 flex-col h-full bg-slate-50 p-4 justify-between relative">
+            <!-- 상단 상태바 -->
+            <div class="flex items-center justify-between pt-1 mb-2 shrink-0">
+                <button type="button" onclick="exitBattlePrompt(false)" class="text-slate-400 font-black text-xs px-2 py-1 hover:text-slate-600">✕ 도망</button>
+                <div class="flex space-x-1.5" id="battleProgressDots"></div>
+                <div class="flex flex-col items-end w-20">
+                    <span class="text-[9px] font-black text-slate-500 mb-0.5 tracking-wider">HP</span>
+                    <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden shadow-inner border border-slate-300">
                         <div id="barPlayerHp" class="hp-bar-inner h-full bg-emerald-500" style="width: 100%;"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="text-center py-4 shrink-0 flex flex-col items-center justify-center relative">
+            <!-- 몬스터 -->
+            <div class="text-center py-2 shrink-0 flex flex-col items-center justify-center">
                 <div id="battleMonster">💧</div>
-                <div class="w-40 mt-4 bg-white p-2 rounded-xl shadow-sm border border-slate-100">
-                    <div class="text-xs font-black text-slate-700 mb-1" id="labelMonsterName">슬라임</div>
-                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div class="w-32 mt-2 bg-white p-1.5 rounded-xl shadow-sm border border-slate-100">
+                    <div class="text-[10px] font-black text-slate-700 mb-1" id="labelMonsterName">슬라임</div>
+                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div id="barMonsterHp" class="h-full bg-rose-500 transition-all duration-300" style="width: 100%;"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="flex-1 flex flex-col justify-end mb-4">
-                <div class="mb-4">
-                    <span id="labelQuestionTag" class="text-[11px] font-black text-blue-600 bg-blue-100 px-3 py-1 rounded-lg border border-blue-200">개념 분류</span>
-                    <h2 id="textQuestionPrompt" class="text-lg md:text-xl font-black text-slate-800 mt-3 leading-snug drop-shadow-sm">문제가 표시됩니다.</h2>
+            <!-- 문제 & 옵션 (넘칠 경우 내부 스크롤 허용) -->
+            <div class="flex-1 flex flex-col justify-end mb-2 overflow-y-auto" style="touch-action: pan-y;">
+                <div class="mb-3">
+                    <span id="labelQuestionTag" class="text-[10px] font-black text-blue-600 bg-blue-100 px-2 py-1 rounded-md border border-blue-200">개념</span>
+                    <h2 id="textQuestionPrompt" class="text-base md:text-lg font-black text-slate-800 mt-2 leading-snug drop-shadow-sm">질문</h2>
                 </div>
-                <div id="containerOptions" class="space-y-3"></div>
+                <div id="containerOptions" class="space-y-2 pb-1"></div>
             </div>
 
-            <div class="pt-2 pb-1 shrink-0 z-10">
+            <!-- 공격 버튼 -->
+            <div class="pt-2 shrink-0 z-10">
                 <button type="button" id="btnSubmitAnswer" onclick="handleAnswerSubmit()" class="duo-btn w-full bg-slate-300 text-slate-500 font-black text-lg py-4 rounded-2xl" disabled>공격하기 ⚔️</button>
-            </div>
-            
-            <div id="modalFeedback" class="absolute bottom-0 left-0 right-0 p-5 transform translate-y-full transition-transform duration-300 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] z-50">
-                <div class="flex items-center space-x-3 mb-2">
-                    <span id="iconFeedback" class="text-2xl drop-shadow">✨</span>
-                    <h3 id="titleFeedback" class="text-xl font-black drop-shadow-sm">결과</h3>
-                </div>
-                <p id="expFeedback" class="text-xs font-bold opacity-90 leading-relaxed mb-4">해설</p>
-                <button type="button" id="btnFeedbackContinue" onclick="handleFeedbackNext()" class="duo-btn w-full bg-white font-black text-base py-3.5 rounded-xl shadow">다음으로</button>
             </div>
         </div>
 
-        <!-- 모달: 스테이지 클리어 -->
+        <!-- ================= 스테이지 클리어 모달 ================= -->
         <div id="modalStageClear" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur z-50 flex items-center justify-center p-6">
-            <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl border-4 border-amber-300 transform transition-all scale-95">
+            <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl border-4 border-amber-300">
                 <div class="text-6xl mb-2 animate-bounce drop-shadow-md">🦌🎉</div>
                 <h2 class="text-2xl font-black text-slate-800">스테이지 클리어!</h2>
                 <p class="text-xs font-bold text-slate-500 mb-6" id="clearSubtitle">지형 정복 완료</p>
@@ -220,15 +222,13 @@
                         <span class="text-2xl font-black text-blue-600">⚡ +<span id="clearGainedXp">60</span></span>
                     </div>
                 </div>
-                <button type="button" onclick="closeClearModalAndReturn()" class="duo-btn w-full bg-green-500 hover:bg-green-400 text-white font-black text-lg py-3.5 rounded-2xl">
-                    지도 계속 가기 🗺️
-                </button>
+                <button type="button" onclick="closeClearModalAndReturn()" class="duo-btn w-full bg-green-500 hover:bg-green-400 text-white font-black text-lg py-3.5 rounded-2xl">지도 계속 가기 🗺️</button>
             </div>
         </div>
 
-        <!-- 모달: 체력 소진 -->
+        <!-- ================= 체력 소진 모달 ================= -->
         <div id="modalGameOver" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur z-50 flex items-center justify-center p-6">
-            <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl border-4 border-rose-300 transform transition-all scale-95">
+            <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl border-4 border-rose-300">
                 <div class="text-6xl mb-4 animate-pulse">🦌💦</div>
                 <h2 class="text-2xl font-black text-slate-800 mb-2">체력 소진...</h2>
                 <p class="text-sm font-bold text-slate-500 mb-6">별 30개를 소모하여<br>현재 스테이지를 다시 도전하시겠습니까?</p>
@@ -244,7 +244,7 @@
     <script>
         const STAGE_CONFIG = [
             { id: 1, name: '회계의 숲 입구', biome: 'forest', boss: false, monster: '💧', mName: '슬라임', questions: [
-                { tag: '회계 목적', text: '회계의 가장 핵심적인 존재 목적은 무엇일까요?', options: ['단순히 세금을 적게 내기 위해', '정보이용자의 합리적 의사결정을 돕기 위해', '현금 출납 장부를 보관하기 위해'], answer: 1, exp: '회계는 투자자, 채권자 등 이해관계자의 올바른 경제적 의사결정을 돕는 도구입니다.' },
+                { tag: '회계 목적', text: '회계의 가장 핵심적인 존재 목적은 무엇일까요?', options: ['단순히 세금을 적게 내기 위해', '정보이용자의 합리적 의사결정을 돕기 위해', '현금 출납 장부를 보관하기 위해'], answer: 1, exp: '회계는 이해관계자의 올바른 경제적 의사결정을 돕는 도구입니다.' },
                 { tag: '자산 구분', text: '다음 중 기업의 [자산(Asset)]으로 분류되는 항목은?', options: ['생산 설비 및 업무용 차량', '아직 지급하지 않은 외상대금', '은행에서 빌려온 대출금'], answer: 0, exp: '현재 기업이 통제하고 미래 경제적 효익을 창출하는 자원이 자산입니다.' },
                 { tag: '회계단위', text: '인위적으로 1년 등의 단위를 끊어서 재무상태를 보고하는 기간은?', options: ['회계기간(회계연도)', '감사주기', '정비주기'], answer: 0, exp: '통상 1년을 1회계기간(회계연도)으로 설정합니다.' }
             ]},
@@ -255,7 +255,7 @@
             ]},
             { id: 3, name: '거래의 계곡', biome: 'forest', boss: false, monster: '🐺', mName: '늑대', questions: [
                 { tag: '회계상 거래', text: '다음 중 회계상 장부에 기록해야 하는 [거래]는 어느 것일까요?', options: ['신입 사원 3명 채용 계약 체결', '창고의 부품이 화재로 소실됨', '신규 기계장치 도입 구두 약속'], answer: 1, exp: '실제 자산·부채·자본의 금액적 증감 변화를 일으켜야 회계상 거래입니다.' },
-                { tag: '거래의 이중성', text: '사무용 PC를 현금 100만 원에 구입했을 때 자산 총액의 변화는?', options: ['100만 원 증가', '100만 원 감소', '총액 변함없음'], answer: 2, exp: '현금(자산) 감소 100만 원, 비품(자산) 증가 100만 원으로 상쇄되어 총액은 동일합니다.' },
+                { tag: '거래의 이중성', text: '사무용 PC를 현금 100만 원에 구입했을 때 자산 총액의 변화는?', options: ['100만 원 증가', '100만 원 감소', '총액 변함없음'], answer: 2, exp: '현금 감소, 비품 증가로 자산 총액은 동일합니다.' },
                 { tag: '차변/대변', text: '복식부기 규칙상 차변(왼쪽)에 올 수 있는 요소는 무엇일까요?', options: ['수익의 발생', '부채의 증가', '비용의 발생'], answer: 2, exp: '차변에는 자산 증가, 부채 감소, 자본 감소, 비용 발생이 기록됩니다.' }
             ]},
             { id: 4, name: '분개의 해변', biome: 'ocean', boss: false, monster: '🦀', mName: '꽃게', questions: [
@@ -263,60 +263,53 @@
                 { tag: '원장 전기', text: '분개장에 적힌 기록들을 계정과목별 장부로 옮겨 적는 과정은?', options: ['전기(Posting)', '시산', '마감'], answer: 0, exp: '분개장에서 총계정원장으로 이동하여 옮겨 적는 것을 전기라고 합니다.' },
                 { tag: '시산표', text: '원장 전기가 차변/대변 대차평균의 원리에 맞게 됐는지 검증하는 표는?', options: ['손익계산서', '시산표(Trial Balance)', '재무상태표'], answer: 1, exp: '대차평균의 원리를 이용하여 전기의 오류를 검증하는 표가 시산표입니다.' }
             ]},
-            { id: 5, name: '심해 수문장 성채', biome: 'ocean', boss: true, monster: '🐙', mName: '크라켄 (중간보스)', questions: [
-                { tag: '보충법 대손', text: '기말 매출채권 2,000만 원에 1% 대손 추정, 설정 전 충당금 잔액이 5만 원 있다면 계상할 대손상각비는?', options: ['15만 원', '20만 원', '25만 원'], answer: 0, exp: '목표액 20만 원(2,000만×1%) - 잔액 5만 원 = 15만 원만 추가 설정합니다.' },
-                { tag: '정액법 상각', text: '취득원가 500만 원, 잔존가치 50만 원, 내용연수 5년 기계장치의 연간 감가상각비는? (정액법)', options: ['90만 원', '100만 원', '110만 원'], answer: 0, exp: '(500만 - 50만) ÷ 5년 = 연간 90만 원입니다.' },
-                { tag: '결산정리 분개', text: '10월 1일에 1년 치 화재보험료 120만 원을 전액 비용 처리했을 때, 12월 31일 선급비용(자산)은? (월할계산)', options: ['30만 원', '90만 원', '120만 원'], answer: 1, exp: '차기분 9개월에 해당하는 90만 원(120만×9/12)을 선급비용으로 대체합니다.' }
+            { id: 5, name: '심해 수문장 성채', biome: 'ocean', boss: true, monster: '🐙', mName: '크라켄 (보스)', questions: [
+                { tag: '보충법 대손', text: '기말 매출채권 2,000만 원에 1% 대손 추정, 설정 전 충당금 잔액이 5만 원 있다면 계상할 대손상각비는?', options: ['15만 원', '20만 원', '25만 원'], answer: 0, exp: '목표액 20만 원 - 잔액 5만 원 = 15만 원만 추가 설정합니다.' },
+                { tag: '정액법 상각', text: '취득원가 500만 원, 잔존가치 50만 원, 내용연수 5년 기계장치의 연간 감가상각비는?', options: ['90만 원', '100만 원', '110만 원'], answer: 0, exp: '(500만 - 50만) ÷ 5년 = 연간 90만 원입니다.' },
+                { tag: '결산정리 분개', text: '10/1에 1년 치 화재보험료 120만 원을 비용 처리 시, 12/31 선급비용은?', options: ['30만 원', '90만 원', '120만 원'], answer: 1, exp: '차기분 9개월치(90만 원)를 선급비용으로 대체합니다.' }
             ]},
             { id: 6, name: '산호초 군락', biome: 'ocean', boss: false, monster: '🦈', mName: '상어', questions: [
-                { tag: '현금성자산', text: '취득 당시 만기가 몇 개월 이내에 도래하는 단기금융상품을 현금성자산이라 부를까요?', options: ['1개월 이내', '3개월 이내', '6개월 이내'], answer: 1, exp: '취득일로부터 만기(상환일)가 3개월 이내인 유동성 높은 자산입니다.' },
-                { tag: '단기매매증권', text: '단기 시세차익 목적으로 주식을 매입할 때 발생한 증권사 거래 수수료는?', options: ['취득원가에 가산', '영업외비용으로 당기 처리', '자본잉여금 차감'], answer: 1, exp: '단기매매증권 취득 수수료는 자산 원가에 더하지 않고 당기비용 처리합니다.' },
-                { tag: '미수금/외상매출', text: '사용하던 업무용 차량을 처분하고 대금을 한 달 뒤에 받기로 했을 때 올바른 계정은?', options: ['외상매출금', '미수금', '받을어음'], answer: 1, exp: '일반적 상거래(상품 등) 이외의 자산 처분 채권은 미수금입니다.' }
+                { tag: '현금성자산', text: '취득 당시 만기가 몇 개월 이내에 도래하는 단기금융상품을 현금성자산이라 부를까요?', options: ['1개월 이내', '3개월 이내', '6개월 이내'], answer: 1, exp: '만기가 3개월 이내인 유동성 높은 자산입니다.' },
+                { tag: '단기매매증권', text: '단기 시세차익 목적으로 주식을 매입할 때 발생한 증권사 거래 수수료는?', options: ['취득원가에 가산', '당기비용 처리', '자본잉여금 차감'], answer: 1, exp: '단기매매증권 취득 수수료는 당기비용(영업외비용) 처리합니다.' },
+                { tag: '미수금/외상매출', text: '사용하던 업무용 차량을 처분하고 대금을 한 달 뒤에 받기로 했을 때 올바른 계정은?', options: ['외상매출금', '미수금', '받을어음'], answer: 1, exp: '일반적 상거래 이외의 자산 처분 채권은 미수금입니다.' }
             ]},
             { id: 7, name: '해저 난파선', biome: 'ocean', boss: false, monster: '👻', mName: '유령선원', questions: [
-                { tag: '재고자산 단가', text: '물가상승 시 기말재고액을 가장 높게, 매출원가를 가장 낮게 평가하는 단가결정법은?', options: ['선입선출법(FIFO)', '후입선출법(LIFO)', '총평균법'], answer: 0, exp: '먼저 들어온 저렴한 단가가 매출원가로 빠져나가므로 기말재고가 높게 평가됩니다.' },
+                { tag: '재고자산 단가', text: '물가상승 시 기말재고액을 가장 높게 평가하는 단가결정법은?', options: ['선입선출법(FIFO)', '후입선출법(LIFO)', '총평균법'], answer: 0, exp: '먼저 들어온 저렴한 단가가 원가로 잡혀 재고가 높게 평가됩니다.' },
                 { tag: '매출원가 공식', text: '기초상품(20) + 당기순매입(80) - 기말상품(30)의 계산 결과는?', options: ['매출원가 70', '매출총이익 70', '순이익 50'], answer: 0, exp: '판매가능 상품 100에서 남은 기말 30을 빼면 매출원가 70입니다.' },
-                { tag: '재고 감모손실', text: '재고자산의 수량이 장부상 수량보다 부족할 때 발생하는 손실은?', options: ['재고자산평가손실', '재고자산감모손실', '대손상각비'], answer: 1, exp: '수량 부족은 감모손실, 가격 하락은 평가손실로 분류합니다.' }
+                { tag: '재고 감모손실', text: '재고자산의 수량이 장부상 수량보다 부족할 때 발생하는 손실은?', options: ['재고자산평가손실', '재고자산감모손실', '대손상각비'], answer: 1, exp: '수량 부족은 감모손실, 가격 하락은 평가손실입니다.' }
             ]},
             { id: 8, name: '용암 능선', biome: 'volcano', boss: false, monster: '🦂', mName: '화염전갈', questions: [
-                { tag: '유형자산 원가', text: '기계장치를 취득하며 필수적으로 지출한 시운전비와 운반비의 처리는?', options: ['기계장치 취득원가에 포함', '당기 수선비 처리', '영업외비용 처리'], answer: 0, exp: '자산을 본래 목적대로 사용하기 전 발생한 필수 부대비용은 취득원가입니다.' },
-                { tag: '자본적 지출', text: '기존 건물에 엘리베이터를 새로 증설하여 건물 가치가 크게 늘어난 지출은?', options: ['수익적 지출(수선비)', '자본적 지출(건물 원가 가산)', '판매비와관리비'], answer: 1, exp: '가치 증가나 수명 연장을 가져오는 지출은 자산 원가에 가산(자본적 지출)합니다.' },
-                { tag: '무형자산', text: '물리적 형체는 없으나 식별 가능하고 통제할 수 있는 비유동자산은?', options: ['무형자산(특허권 등)', '임차보증금', '선급금'], answer: 0, exp: '영업권, 특허권, 개발비 등은 무형자산에 속합니다.' }
+                { tag: '유형자산 원가', text: '기계장치를 취득하며 필수적으로 지출한 시운전비와 운반비의 처리는?', options: ['기계장치 취득원가에 포함', '당기 수선비 처리', '영업외비용 처리'], answer: 0, exp: '사용 전 발생한 필수 부대비용은 취득원가입니다.' },
+                { tag: '자본적 지출', text: '기존 건물에 엘리베이터를 새로 증설하여 건물 가치가 늘어난 지출은?', options: ['수익적 지출(수선비)', '자본적 지출(건물 원가 가산)', '판매비와관리비'], answer: 1, exp: '가치 증가는 자본적 지출로 처리합니다.' },
+                { tag: '무형자산', text: '물리적 형체는 없으나 식별 가능하고 통제할 수 있는 비유동자산은?', options: ['무형자산(특허권 등)', '임차보증금', '선급금'], answer: 0, exp: '영업권, 특허권 등은 무형자산에 속합니다.' }
             ]},
             { id: 9, name: '불타는 협곡', biome: 'volcano', boss: false, monster: '🧌', mName: '골렘', questions: [
-                { tag: '유동성 배열', text: '재무상태표에 자산과 부채를 배열할 때 가장 우선하는 원칙은?', options: ['금액이 큰 순서', '현금화(유동성)가 빠른 순서', '가나다 이름 순서'], answer: 1, exp: '현금화가 빠른 항목부터 위에 배치하는 유동성배열법을 따릅니다.' },
-                { tag: '예수금 계정', text: '임직원 급여를 지급할 때 4대보험료와 소득세를 원천징수하여 맡아둔 금액은?', options: ['예수금 (유동부채)', '미지급비용 (유동비용)', '가지급금 (자산)'], answer: 0, exp: '국가 등에 대신 납부하기 위해 미리 떼어 보관 중인 돈은 예수금입니다.' },
+                { tag: '유동성 배열', text: '재무상태표에 자산과 부채를 배열할 때 가장 우선하는 원칙은?', options: ['금액이 큰 순서', '현금화(유동성)가 빠른 순서', '가나다 이름 순서'], answer: 1, exp: '현금화가 빠른 항목부터 위에 배치합니다.' },
+                { tag: '예수금 계정', text: '임직원 급여를 지급할 때 4대보험료와 소득세를 원천징수하여 맡아둔 금액은?', options: ['예수금 (유동부채)', '미지급비용 (유동비용)', '가지급금 (자산)'], answer: 0, exp: '대신 납부하기 위해 미리 떼어 보관 중인 돈은 예수금입니다.' },
                 { tag: '비유동부채', text: '상환 기한이 재무상태표 결산일로부터 1년을 초과하여 도래하는 채무는?', options: ['유동부채', '비유동부채', '자본조정'], answer: 1, exp: '결산일 기준 1년 초과 장기 채무는 비유동부채입니다.' }
             ]},
             { id: 10, name: '드래곤의 분화구', biome: 'volcano', boss: true, monster: '🐉', mName: '회계 드래곤 (최종보스)', questions: [
-                { tag: '자본잉여금', text: '주식을 액면가액(5,000원)보다 높은 7,000원에 발행했을 때 초과액 2,000원의 계정은?', options: ['주식발행초과금 (자본잉여금)', '단기투자평가이익 (영업외수익)', '감자차익 (자본조정)'], answer: 0, exp: '주주와의 자본거래에서 발생한 순이익 잉여금은 주식발행초과금입니다.' },
-                { tag: '사채 발행', text: '사채 액면이자율(5%)이 시장이자율(8%)보다 낮을 때 사채는 어떻게 발행될까요?', options: ['액면발행', '할인발행', '할증발행'], answer: 1, exp: '시장의 이자보다 낮게 주므로, 그만큼 사채 가격을 깎아서(할인) 발행해야 팔립니다.' },
-                { tag: '재무제표 범위', text: '일반기업회계기준에서 공식적으로 규정하는 전체 재무제표 5종에 속하지 않는 것은?', options: ['자본변동표', '현금흐름표', '제조원가명세서'], answer: 2, exp: '재무상태표, 손익계산서, 자본변동표, 현금흐름표, 주석이 5종이며 제조원가명세서는 부속명세서입니다.' }
+                { tag: '자본잉여금', text: '주식을 액면가액(5,000원)보다 높은 7,000원에 발행했을 때 초과액 2,000원의 계정은?', options: ['주식발행초과금 (자본잉여금)', '단기투자평가이익 (영업외수익)', '감자차익 (자본조정)'], answer: 0, exp: '자본거래에서 발생한 순이익 잉여금은 주식발행초과금입니다.' },
+                { tag: '사채 발행', text: '사채 액면이자율(5%)이 시장이자율(8%)보다 낮을 때 사채는 어떻게 발행될까요?', options: ['액면발행', '할인발행', '할증발행'], answer: 1, exp: '이자가 낮아 사채 가격을 깎아서(할인) 발행해야 합니다.' },
+                { tag: '재무제표 범위', text: '일반기업회계기준에서 공식적으로 규정하는 전체 재무제표 5종에 속하지 않는 것은?', options: ['자본변동표', '현금흐름표', '제조원가명세서'], answer: 2, exp: '제조원가명세서는 부속명세서입니다.' }
             ]}
         ];
 
-        let userState = {
-            name: '모험가',
-            currentStage: 1,
-            previousStage: 1, 
-            stars: 0, xp: 0, hp: 100,
-            currentQueue: [],     
-            stageCorrectCount: 0, 
-            lastAnswerCorrect: false
-        };
+        let userState = { name: '모험가', currentStage: 1, previousStage: 1, stars: 0, xp: 0, hp: 100, currentQueue: [], stageCorrectCount: 0 };
         const TOTAL_STAGE_QUESTIONS = 3;
         let selectedAnswerIdx = null;
         let isTransitioning = false;
+        let mapWidth = 0;
+        let mapHeight = 0;
 
-        const MAP_TOTAL_HEIGHT = 3800; 
-
-        function getStageNodeCoords(stageFloat, mapWidth) {
-            const marginY = 350; 
-            const usableH = MAP_TOTAL_HEIGHT - (marginY * 2);
+        // 원스크린 맞춤형 좌표 계산 (스크롤 불필요)
+        function getStageNodeCoords(stageFloat, w, h) {
+            const marginY = 60; // 상하 여백 축소
+            const usableH = h - (marginY * 2);
             const stepY = usableH / 9; 
-            const y = (MAP_TOTAL_HEIGHT - marginY) - (stageFloat * stepY);
-            const centerX = mapWidth / 2;
-            const amplitude = mapWidth * 0.40; 
+            const y = (h - marginY) - (stageFloat * stepY);
+            const centerX = w / 2;
+            const amplitude = w * 0.35; 
             const x = centerX + Math.sin(stageFloat * 1.5) * amplitude;
             return { x, y };
         }
@@ -330,28 +323,27 @@
             document.getElementById('screenMap').classList.remove('hidden');
             document.getElementById('screenMap').classList.add('flex');
 
-            buildWorldMap();
+            setTimeout(buildWorldMap, 50); // flex 렌더링 후 크기 측정
         }
 
         function buildWorldMap() {
-            const mapArea = document.getElementById('mapWorld');
+            const mapArea = document.getElementById('mapViewport');
+            mapWidth = mapArea.clientWidth || 430;
+            mapHeight = mapArea.clientHeight || window.innerHeight;
+
             const nodesContainer = document.getElementById('nodesContainer');
             const decorLayer = document.getElementById('decorationsLayer');
-            const mapWidth = mapArea.clientWidth || 430;
-
-            nodesContainer.innerHTML = '';
-            decorLayer.innerHTML = '';
+            nodesContainer.innerHTML = ''; decorLayer.innerHTML = '';
 
             let d = '';
             for(let f = 0; f <= 9; f += 0.1) {
-                const pt = getStageNodeCoords(f, mapWidth);
+                const pt = getStageNodeCoords(f, mapWidth, mapHeight);
                 d += (f === 0 ? `M ${pt.x} ${pt.y}` : ` L ${pt.x} ${pt.y}`);
             }
 
             const pathBg = document.getElementById('pathBackground');
             const pathFill = document.getElementById('pathFill');
-            pathBg.setAttribute('d', d);
-            pathFill.setAttribute('d', d);
+            pathBg.setAttribute('d', d); pathFill.setAttribute('d', d);
 
             const totalPathLength = pathBg.getTotalLength();
             pathFill.style.strokeDasharray = totalPathLength;
@@ -359,14 +351,12 @@
             pathFill.style.strokeDashoffset = totalPathLength * (1 - clearedRatio);
 
             for(let i=0; i<10; i++) {
-                const pt = getStageNodeCoords(i, mapWidth);
-                const stageNum = i + 1;
+                const pt = getStageNodeCoords(i, mapWidth, mapHeight);
                 const conf = STAGE_CONFIG[i];
                 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'absolute';
-                wrapper.style.left = `${pt.x}px`;
-                wrapper.style.top = `${pt.y}px`;
+                wrapper.style.left = `${pt.x}px`; wrapper.style.top = `${pt.y}px`;
                 wrapper.style.transform = `translate(-50%, -50%)`;
 
                 const node = document.createElement('button');
@@ -374,90 +364,72 @@
                 let cls = 'stage-btn ';
                 if(conf.boss) cls += 'boss ';
 
-                if (stageNum < userState.currentStage) {
-                    cls += 'cleared'; node.innerHTML = conf.boss ? '👑' : '⭐';
-                } else if (stageNum === userState.currentStage) {
-                    cls += 'current'; node.innerHTML = conf.boss ? '⚔️' : stageNum;
-                } else {
-                    cls += 'locked'; node.innerHTML = conf.boss ? '🔒' : stageNum;
-                }
+                if ((i+1) < userState.currentStage) { cls += 'cleared'; node.innerHTML = conf.boss ? '👑' : '⭐'; } 
+                else if ((i+1) === userState.currentStage) { cls += 'current'; node.innerHTML = conf.boss ? '⚔️' : (i+1); } 
+                else { cls += 'locked'; node.innerHTML = conf.boss ? '🔒' : (i+1); }
 
                 node.className = cls;
-                node.onclick = () => { if(stageNum <= userState.currentStage) enterStage(); };
+                node.onclick = () => { if((i+1) <= userState.currentStage) enterStage(); };
                 
-                wrapper.appendChild(node);
-                nodesContainer.appendChild(wrapper);
+                wrapper.appendChild(node); nodesContainer.appendChild(wrapper);
             }
 
-            renderBiomeDecorations(decorLayer, mapWidth);
+            renderBiomeDecorations(decorLayer, mapWidth, mapHeight);
 
             if (userState.previousStage < userState.currentStage) {
-                animateAvatarWalk(userState.previousStage - 1, userState.currentStage - 1, 1500, mapWidth);
+                animateAvatarWalk(userState.previousStage - 1, userState.currentStage - 1, 1200);
             } else {
-                placeAvatarAt(userState.currentStage - 1, mapWidth);
+                placeAvatarAt(userState.currentStage - 1);
             }
             updateMapBottomUI();
         }
 
-        function renderBiomeDecorations(container, w) {
-            const decors = [
-                { limit: 1200, emojis: ['🌋', '⛰️', '🔥', '🪨', '💀'] }, 
-                { limit: 2500, emojis: ['🌊', '🏖️', '🐚', '🏝️', '⛵'] }, 
-                { limit: 3800, emojis: ['🌲', '🌳', '🏕️', '🍄', '🌿'] }  
-            ];
-
-            for(let i=0; i<45; i++) {
-                const y = 300 + (i * 75);
-                const x = (i % 2 === 0) ? (w * 0.1) + (Math.random()*40) : (w * 0.8) - (Math.random()*40);
+        function renderBiomeDecorations(container, w, h) {
+            const decors = [['🌋', '⛰️', '🔥'], ['🌊', '🏖️', '⛵'], ['🌲', '🌳', '🍄']];
+            for(let i=0; i<25; i++) {
+                const y = Math.random() * h;
+                const x = (i % 2 === 0) ? (w * 0.1) + (Math.random()*30) : (w * 0.8) - (Math.random()*30);
                 
-                let emojiList = decors[2].emojis;
-                if(y < 1200) emojiList = decors[0].emojis;
-                else if(y < 2500) emojiList = decors[1].emojis;
+                let emojiList = decors[2];
+                if(y < h*0.3) emojiList = decors[0];
+                else if(y < h*0.6) emojiList = decors[1];
 
                 const el = document.createElement('div');
-                el.className = 'absolute text-3xl opacity-80 pointer-events-none'; 
+                el.className = 'absolute text-2xl opacity-60 pointer-events-none'; 
                 el.style.left = `${x}px`; el.style.top = `${y}px`;
                 el.innerText = emojiList[Math.floor(Math.random() * emojiList.length)];
                 container.appendChild(el);
             }
         }
 
-        function placeAvatarAt(stageFloat, mapWidth) {
-            const avatarWrapper = document.getElementById('avatarContainer');
-            const pt = getStageNodeCoords(stageFloat, mapWidth);
-            avatarWrapper.style.left = `${pt.x}px`;
-            avatarWrapper.style.top = `${pt.y}px`;
-            
-            setTimeout(() => {
-                avatarWrapper.scrollIntoView({ behavior: 'auto', block: 'center' });
-            }, 50);
+        function placeAvatarAt(stageFloat) {
+            const mapAvatar = document.getElementById('mapAvatar');
+            const pt = getStageNodeCoords(stageFloat, mapWidth, mapHeight);
+            document.getElementById('avatarContainer').style.left = `${pt.x}px`;
+            document.getElementById('avatarContainer').style.top = `${pt.y}px`;
         }
 
-        function animateAvatarWalk(startFloat, endFloat, duration, mapWidth) {
-            const avatarWrapper = document.getElementById('avatarContainer');
+        function animateAvatarWalk(startFloat, endFloat, duration) {
+            const avatarContainer = document.getElementById('avatarContainer');
             const mapAvatar = document.getElementById('mapAvatar');
             const startTime = performance.now();
-            
-            placeAvatarAt(startFloat, mapWidth);
+            placeAvatarAt(startFloat);
             
             setTimeout(() => {
                 mapAvatar.classList.add('avatar-walk'); 
                 const btn = document.getElementById('btnEnterCurrentStage');
-                btn.disabled = true; 
-                btn.innerText = "이동 중... 🏃";
+                btn.disabled = true; btn.innerText = "이동 중... 🏃";
 
                 function step(currentTime) {
-                    const elapsed = currentTime - startTime - 500; 
+                    const elapsed = currentTime - startTime - 300; 
                     if(elapsed < 0) { requestAnimationFrame(step); return; }
 
                     const progress = Math.min(elapsed / duration, 1);
                     const easeProgress = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
                     const currentFloat = startFloat + (endFloat - startFloat) * easeProgress;
                     
-                    const pt = getStageNodeCoords(currentFloat, mapWidth);
-                    avatarWrapper.style.left = `${pt.x}px`;
-                    avatarWrapper.style.top = `${pt.y}px`;
-                    avatarWrapper.scrollIntoView({ behavior: 'auto', block: 'center' });
+                    const pt = getStageNodeCoords(currentFloat, mapWidth, mapHeight);
+                    avatarContainer.style.left = `${pt.x}px`; avatarContainer.style.top = `${pt.y}px`;
                     
                     if (progress < 1) {
                         requestAnimationFrame(step);
@@ -466,16 +438,14 @@
                         userState.previousStage = userState.currentStage;
                         updateMapBottomUI();
                         
-                        const pathBg = document.getElementById('pathBackground');
                         const pathFill = document.getElementById('pathFill');
-                        const totalPathLength = pathBg.getTotalLength();
-                        const clearedRatio = Math.min((userState.currentStage - 1) / 9, 1);
+                        const totalLength = document.getElementById('pathBackground').getTotalLength();
                         pathFill.style.transition = "stroke-dashoffset 0.5s ease-out";
-                        pathFill.style.strokeDashoffset = totalPathLength * (1 - clearedRatio);
+                        pathFill.style.strokeDashoffset = totalLength * (1 - Math.min((userState.currentStage - 1) / 9, 1));
                     }
                 }
                 requestAnimationFrame(step);
-            }, 500);
+            }, 300);
         }
 
         function updateMapBottomUI() {
@@ -483,26 +453,22 @@
             btn.disabled = false;
             if (userState.currentStage > 10) {
                 btn.innerText = '재오링고 전 과정 수료 완료 🎓';
-                btn.onclick = () => alert(`축하합니다! 재오링고의 모든 몬스터를 물리쳤습니다.`);
+                btn.onclick = () => alert(`축하합니다! 모험을 완수했습니다.`);
             } else {
                 const conf = STAGE_CONFIG[userState.currentStage - 1];
-                btn.innerText = `스테이지 ${userState.currentStage}: ${conf.name} ${conf.boss ? '⚔️' : '입장'}`;
+                btn.innerText = `스테이지 ${userState.currentStage}: ${conf.name} 입장`;
                 btn.onclick = () => enterStage();
             }
         }
 
+        // --- 4. 전투 (팝업 삭제, 즉시 자동 진행) ---
         function enterStage() {
             const stageConfig = STAGE_CONFIG[userState.currentStage - 1];
             userState.currentQueue = JSON.parse(JSON.stringify(stageConfig.questions)); 
-            userState.stageCorrectCount = 0;
-            userState.hp = 100;
+            userState.stageCorrectCount = 0; userState.hp = 100;
             
-            document.getElementById('modalFeedback').classList.add('translate-y-full');
-            document.getElementById('screenMap').classList.add('hidden'); 
-            document.getElementById('screenMap').classList.remove('flex');
-            document.getElementById('screenBattle').classList.remove('hidden'); 
-            document.getElementById('screenBattle').classList.add('flex');
-            
+            document.getElementById('screenMap').classList.add('hidden'); document.getElementById('screenMap').classList.remove('flex');
+            document.getElementById('screenBattle').classList.remove('hidden'); document.getElementById('screenBattle').classList.add('flex');
             renderQuestionBattle();
         }
 
@@ -515,241 +481,158 @@
         }
 
         function renderQuestionBattle() {
-            document.getElementById('modalFeedback').classList.add('translate-y-full');
-
-            const currentStageObj = STAGE_CONFIG[userState.currentStage - 1];
             const q = userState.currentQueue[0]; 
-            const mEl = document.getElementById('battleMonster');
+            const conf = STAGE_CONFIG[userState.currentStage - 1];
+            document.getElementById('battleMonster').innerText = conf.monster; 
+            document.getElementById('battleMonster').className = ''; 
+            document.getElementById('labelMonsterName').innerText = conf.mName;
             
-            mEl.innerText = currentStageObj.monster; 
-            mEl.className = ''; 
-            document.getElementById('labelMonsterName').innerText = currentStageObj.mName;
-            
-            const remainingHp = (userState.currentQueue.length / TOTAL_STAGE_QUESTIONS) * 100;
-            document.getElementById('barMonsterHp').style.width = `${remainingHp}%`;
+            document.getElementById('barMonsterHp').style.width = `${(userState.currentQueue.length / TOTAL_STAGE_QUESTIONS) * 100}%`;
 
-            const dotsContainer = document.getElementById('battleProgressDots');
-            dotsContainer.innerHTML = '';
+            const dotsContainer = document.getElementById('battleProgressDots'); dotsContainer.innerHTML = '';
             for(let i=0; i<TOTAL_STAGE_QUESTIONS; i++) {
                 const dot = document.createElement('div');
-                if (i < userState.stageCorrectCount) {
-                    dot.className = 'w-8 h-2.5 rounded-full bg-emerald-400 shadow-inner'; 
-                } else if (i === userState.stageCorrectCount) {
-                    dot.className = 'w-8 h-2.5 rounded-full bg-blue-500 shadow-inner'; 
-                } else {
-                    dot.className = 'w-8 h-2.5 rounded-full bg-slate-200 shadow-inner'; 
-                }
+                dot.className = `w-8 h-2 rounded-full shadow-inner ${i < userState.stageCorrectCount ? 'bg-emerald-400' : (i === userState.stageCorrectCount ? 'bg-blue-500' : 'bg-slate-200')}`;
                 dotsContainer.appendChild(dot);
             }
             updateHpBarUI();
 
-            document.getElementById('labelQuestionTag').innerText = `${q.tag}`;
+            document.getElementById('labelQuestionTag').innerText = q.tag;
             document.getElementById('textQuestionPrompt').innerText = q.text;
 
-            const container = document.getElementById('containerOptions'); 
-            container.innerHTML = '';
+            const container = document.getElementById('containerOptions'); container.innerHTML = '';
             q.options.forEach((opt, idx) => {
                 const optBtn = document.createElement('div');
-                optBtn.className = 'option-card p-4 rounded-2xl bg-white text-slate-800 font-bold text-sm md:text-base shadow-sm';
+                optBtn.className = 'option-card p-3.5 rounded-xl bg-white text-slate-800 font-bold text-sm shadow-sm';
                 optBtn.innerText = opt;
                 optBtn.onclick = () => selectOption(idx, optBtn);
                 container.appendChild(optBtn);
             });
-            selectedAnswerIdx = null; 
-            updateSubmitButton();
+            selectedAnswerIdx = null; updateSubmitButton();
+            isTransitioning = false;
         }
 
         function selectOption(idx, el) {
+            if(isTransitioning) return;
             selectedAnswerIdx = idx;
             document.querySelectorAll('.option-card').forEach(card => card.classList.remove('selected'));
-            el.classList.add('selected'); 
-            updateSubmitButton();
+            el.classList.add('selected'); updateSubmitButton();
         }
 
         function updateSubmitButton() {
             const btn = document.getElementById('btnSubmitAnswer');
-            if(selectedAnswerIdx !== null) {
-                btn.disabled = false; 
-                btn.classList.replace('bg-slate-300', 'bg-blue-600'); 
-                btn.classList.replace('text-slate-500', 'text-white');
+            if(selectedAnswerIdx !== null && !isTransitioning) {
+                btn.disabled = false; btn.classList.replace('bg-slate-300', 'bg-blue-600'); btn.classList.replace('text-slate-500', 'text-white');
             } else {
-                btn.disabled = true; 
-                btn.classList.replace('bg-blue-600', 'bg-slate-300'); 
-                btn.classList.replace('text-white', 'text-slate-500');
+                btn.disabled = true; btn.classList.replace('bg-blue-600', 'bg-slate-300'); btn.classList.replace('text-white', 'text-slate-500');
             }
         }
 
+        // 팝업 없이 즉각 시각적 피드백 후 자동 딜레이 진행
         function handleAnswerSubmit() {
-            const btn = document.getElementById('btnSubmitAnswer');
-            if(selectedAnswerIdx === null || btn.disabled) return; 
-            
-            btn.disabled = true;
+            if(selectedAnswerIdx === null || isTransitioning) return; 
+            isTransitioning = true;
+            document.getElementById('btnSubmitAnswer').disabled = true;
             
             const q = userState.currentQueue[0];
             const isCorrect = (selectedAnswerIdx === q.answer);
-            userState.lastAnswerCorrect = isCorrect; 
             
             const mEl = document.getElementById('battleMonster');
             const battleScreen = document.getElementById('screenBattle');
+            const options = document.querySelectorAll('.option-card');
+
+            // 버튼 색상 즉시 변경 피드백
+            options.forEach((opt, idx) => {
+                opt.classList.remove('selected');
+                if (idx === q.answer) {
+                    opt.classList.add('correct-ans');
+                } else if (idx === selectedAnswerIdx && !isCorrect) {
+                    opt.classList.add('wrong-ans');
+                }
+            });
 
             if(isCorrect) {
-                userState.stageCorrectCount++; 
-                userState.xp += 20;
-                mEl.classList.remove('monster-hit'); 
-                void mEl.offsetWidth; 
-                mEl.classList.add('monster-hit');
-                showInstantFeedback(true, q.exp);
+                userState.stageCorrectCount++; userState.xp += 20;
+                mEl.classList.remove('monster-hit'); void mEl.offsetWidth; mEl.classList.add('monster-hit');
             } else {
-                mEl.classList.remove('monster-attack'); 
-                battleScreen.classList.remove('player-damage');
-                void mEl.offsetWidth; 
-                mEl.classList.add('monster-attack');
-                
+                mEl.classList.remove('monster-attack'); battleScreen.classList.remove('player-damage');
+                void mEl.offsetWidth; mEl.classList.add('monster-attack');
                 setTimeout(() => {
                     battleScreen.classList.add('player-damage');
                     userState.hp = Math.max(0, userState.hp - 34);
                     updateHpBarUI();
-                    setTimeout(() => { showInstantFeedback(false, q.exp); }, 400); 
                 }, 300); 
             }
-        }
 
-        function showInstantFeedback(isCorrect, expText) {
-            isTransitioning = false;
-            const modal = document.getElementById('modalFeedback');
-            const title = document.getElementById('titleFeedback');
-            const icon = document.getElementById('iconFeedback');
-            const exp = document.getElementById('expFeedback');
-            const btn = document.getElementById('btnFeedbackContinue');
-            
-            btn.disabled = false;
-            modal.classList.remove('translate-y-full');
-
-            if(isCorrect) {
-                modal.className = modal.className.replace(/bg-\w+-100|text-\w+-900/g, ''); 
-                modal.classList.add('bg-emerald-100', 'text-emerald-900');
-                icon.innerText = '⚔️'; 
-                title.innerText = '공격 명중!';
-                btn.className = 'duo-btn w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base py-3.5 rounded-xl shadow';
-                btn.innerText = "다음으로";
-            } else {
-                modal.className = modal.className.replace(/bg-\w+-100|text-\w+-900/g, ''); 
-                modal.classList.add('bg-rose-100', 'text-rose-900');
+            // 1.5초 딜레이 후 자동 다음 진행
+            setTimeout(() => {
+                battleScreen.classList.remove('player-damage');
                 
                 if(userState.hp <= 0) {
-                    icon.innerText = '☠️'; 
-                    title.innerText = '체력 고갈!';
-                    btn.className = 'duo-btn w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-base py-3.5 rounded-xl shadow';
-                    btn.innerText = "계속하기";
-                    expText += '\n\n(체력이 모두 소진되었습니다...)';
-                } else {
-                    icon.innerText = '🛡️'; 
-                    title.innerText = '오답! 문제를 큐 맨 뒤로 보냅니다.';
-                    btn.className = 'duo-btn w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-base py-3.5 rounded-xl shadow';
-                    btn.innerText = "다음으로";
-                }
-            }
-            exp.innerText = expText;
-        }
-
-        function handleFeedbackNext() {
-            const btn = document.getElementById('btnFeedbackContinue');
-            if (isTransitioning || btn.disabled) return;
-            
-            isTransitioning = true;
-            btn.disabled = true;
-
-            document.getElementById('modalFeedback').classList.add('translate-y-full');
-            document.getElementById('screenBattle').classList.remove('player-damage');
-            
-            setTimeout(() => {
-                if(userState.hp <= 0) {
                     document.getElementById('modalGameOver').classList.remove('hidden');
-                    isTransitioning = false;
                     return;
                 }
 
-                const completedQuestion = userState.currentQueue.shift(); 
-                if (!userState.lastAnswerCorrect) {
-                    userState.currentQueue.push(completedQuestion);
-                }
+                const completed = userState.currentQueue.shift();
+                if(!isCorrect) userState.currentQueue.push(completed); // 오답 시 큐 맨 뒤로
 
                 if(userState.currentQueue.length === 0) {
-                    const mEl = document.getElementById('battleMonster');
                     document.getElementById('barMonsterHp').style.width = '0%';
-                    mEl.style.transform = "scale(0) rotate(90deg)"; 
-                    mEl.style.opacity = "0";
-                    
+                    mEl.style.transform = "scale(0) rotate(90deg)"; mEl.style.opacity = "0";
                     setTimeout(() => { 
-                        mEl.style.transform = ""; 
-                        mEl.style.opacity = ""; 
+                        mEl.style.transform = ""; mEl.style.opacity = ""; 
                         showStageClearResult(); 
-                        isTransitioning = false;
-                    }, 700);
-                } else { 
-                    renderQuestionBattle(); 
-                    isTransitioning = false;
+                    }, 500);
+                } else {
+                    renderQuestionBattle();
                 }
-            }, 300);
+            }, 1500);
         }
 
         function respawnStage() {
             document.getElementById('modalGameOver').classList.add('hidden');
             userState.stars = Math.max(0, userState.stars - 30);
             document.getElementById('labelTotalStars').innerText = userState.stars;
-            
-            userState.hp = 100;
-            userState.stageCorrectCount = 0;
-            
+            userState.hp = 100; userState.stageCorrectCount = 0;
             const stageConfig = STAGE_CONFIG[userState.currentStage - 1];
             userState.currentQueue = JSON.parse(JSON.stringify(stageConfig.questions)); 
-            
-            setTimeout(() => {
-                renderQuestionBattle();
-            }, 100);
+            setTimeout(renderQuestionBattle, 100);
         }
 
         function showStageClearResult() {
             const earnedStars = TOTAL_STAGE_QUESTIONS;
-            userState.stars += earnedStars; 
-            document.getElementById('labelTotalStars').innerText = userState.stars; 
+            userState.stars += earnedStars; document.getElementById('labelTotalStars').innerText = userState.stars; 
             document.getElementById('labelTotalXp').innerText = userState.xp;
             document.getElementById('clearGainedStars').innerText = earnedStars; 
-            document.getElementById('clearSubtitle').innerText = `${STAGE_CONFIG[userState.currentStage - 1].name} 토벌 성공!`;
             document.getElementById('modalStageClear').classList.remove('hidden');
         }
 
         function closeClearModalAndReturn() {
             document.getElementById('modalStageClear').classList.add('hidden');
             if(userState.currentStage < 10) userState.currentStage++;
-
-            document.getElementById('screenBattle').classList.add('hidden'); 
-            document.getElementById('screenBattle').classList.remove('flex');
-            document.getElementById('screenMap').classList.remove('hidden'); 
-            document.getElementById('screenMap').classList.add('flex');
-            
+            document.getElementById('screenBattle').classList.add('hidden'); document.getElementById('screenBattle').classList.remove('flex');
+            document.getElementById('screenMap').classList.remove('hidden'); document.getElementById('screenMap').classList.add('flex');
             buildWorldMap(); 
         }
 
         function forceExitBattle() {
             document.getElementById('modalGameOver').classList.add('hidden');
-            document.getElementById('modalFeedback').classList.add('translate-y-full');
-            document.getElementById('screenBattle').classList.add('hidden'); 
-            document.getElementById('screenBattle').classList.remove('flex');
-            document.getElementById('screenMap').classList.remove('hidden'); 
-            document.getElementById('screenMap').classList.add('flex');
+            document.getElementById('screenBattle').classList.add('hidden'); document.getElementById('screenBattle').classList.remove('flex');
+            document.getElementById('screenMap').classList.remove('hidden'); document.getElementById('screenMap').classList.add('flex');
             buildWorldMap();
         }
 
         function exitBattlePrompt(isFromGameOver = false) {
-            if(isFromGameOver) {
-                forceExitBattle();
-            } else {
-                if(confirm('전투를 포기하고 마을(지도)로 돌아가시겠습니까?')) {
-                    forceExitBattle();
-                }
-            }
+            if(isFromGameOver) forceExitBattle();
+            else if(confirm('마을로 돌아가시겠습니까?')) forceExitBattle();
         }
+        
+        // 윈도우 크기 변경 시 자동 리빌드
+        window.addEventListener('resize', () => {
+            if(!document.getElementById('screenMap').classList.contains('hidden')) {
+                buildWorldMap();
+            }
+        });
     </script>
 </body>
 </html>
