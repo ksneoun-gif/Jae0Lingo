@@ -2,9 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>재오링고 (Jae-O-Lingo)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>재오링고 · 에디와 함께하는 회계 모험</title>
+    <link rel="stylesheet" href="base.css">
     <style>
         * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
         
@@ -116,31 +116,31 @@
         }
         .hp-bar-inner { transition: width 0.4s ease, background-color 0.4s; }
     </style>
+<link rel="stylesheet" href="theme.css">
 </head>
 <body>
 
     <div class="mobile-shell">
 
-        <!-- ================= 화면 1: 로그인 ================= -->
-        <div id="screenStart" class="flex-1 flex flex-col justify-between p-6 bg-gradient-to-b from-blue-500 to-sky-900 text-white z-50">
-            <div class="flex-1 flex flex-col items-center justify-center text-center">
-                <div class="text-8xl mb-4 animate-bounce drop-shadow-lg">🦌</div>
-                <h1 class="text-4xl font-black tracking-tight mb-2 drop-shadow-md">재오링고</h1>
-                <p class="text-sky-200 text-sm font-bold">에디와 함께하는 회계 모험</p>
+        <section id="screenStart">
+            <header class="brand-row"><a class="brand" href="./">재오링고<span>JAE·O·LINGO</span></a><span class="edition">회계, 첫걸음부터</span></header>
+            <div class="welcome-layout">
+                <div class="welcome-copy"><span class="eyebrow">작은 도전, 쌓이는 자신감</span><h1>회계가 처음?<br><em>에디와 함께라면.</em></h1><p>낯선 회계도 한 문제씩.<br>나만의 속도로 배우며 모험을 완성해 보세요.</p>
+                    <div class="feature-chips"><span>7가지 기초 개념</span><span>짧은 문제</span><span>틀려도 다시 도전</span></div>
+                    <form id="startForm" class="join-card"><label for="inputPlayerName">어떤 이름으로 모험할까요?</label><div class="join-controls"><input id="inputPlayerName" maxlength="24" autocomplete="nickname" placeholder="모험가 닉네임"><button class="duo-btn primary" type="submit">모험 시작하기 <span>→</span></button></div><p id="resumeHint">가입 없이 가볍게 시작하세요.</p></form>
+                </div>
+                <div class="mascot-scene"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><span class="floating-token token-xp">+20 <small>XP</small></span><span class="floating-token token-heart">♥</span><div class="speech-bubble">반가워! 나는 에디야.</div><img class="hero-deer" src="assets/eddie-3d.jpeg" alt="빨간 목도리를 하고 손을 흔드는 주황색 3D 사슴 에디"><div class="pedestal"></div><div class="scene-caption">YOUR ACCOUNTING COMPANION</div></div>
             </div>
-            <div class="bg-white/95 backdrop-blur p-6 rounded-3xl text-gray-800 shadow-2xl">
-                <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">모험가 닉네임</label>
-                <input id="inputPlayerName" type="text" placeholder="이름을 입력하세요" class="w-full p-4 mb-4 border-2 border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:border-blue-500 font-bold outline-none text-center text-lg">
-                <button type="button" onclick="handleGameStart()" class="duo-btn w-full bg-blue-600 text-white font-black text-lg py-4 rounded-2xl">모험 떠나기 🚀</button>
-            </div>
-        </div>
+            <footer class="welcome-footer"><span>오늘의 한 걸음이 내일의 실력이 돼요.</span><span>배우고 · 풀고 · 성장하기</span></footer>
+        </section>
 
         <!-- ================= 화면 2: 월드 맵 ================= -->
         <div id="screenMap" class="hidden flex-1 flex-col h-full relative bg-slate-900">
+<div class="map-heading"><a class="brand" href="./">재오링고<span>LEARNING ADVENTURE</span></a><span class="edition">나의 학습 지도</span></div>
             <!-- 상단 바 -->
             <div class="h-14 bg-white/95 backdrop-blur border-b border-slate-200 flex items-center justify-between px-4 z-30 shrink-0">
                 <div class="flex items-center space-x-2">
-                    <span class="text-xl drop-shadow-sm">🦌</span>
+                    <img class="mini-deer" src="assets/eddie-3d.jpeg" alt="에디">
                     <span id="labelPlayer" class="font-extrabold text-sm text-slate-800">모험가</span>
                 </div>
                 <div class="flex items-center space-x-3 text-sm font-black">
@@ -149,6 +149,7 @@
                 </div>
             </div>
 
+            <div class="map-layout"><aside class="learning-sidebar"><span class="eyebrow">나의 회계 모험</span><h2>한 걸음씩,<br>확실하게.</h2><p>발판을 따라 작은 도전을<br>하나씩 완성해 보세요.</p><div class="progress-card"><div><strong id="courseProgress">0 / 10</strong><span>스테이지 완료</span></div><div class="course-track"><i id="courseFill"></i></div></div><div class="coach-card"><img src="assets/eddie-3d.jpeg" alt="학습 친구 에디"><p id="coachMessage">틀려도 괜찮아.<br>해설을 읽고 다시 해보자!</p></div><button class="text-button" type="button" onclick="showLearningGuide()">오늘 배우는 개념 보기 ↗</button></aside>
             <!-- 스크롤 맵 뷰포트 -->
             <div id="mapViewport">
                 <div id="mapWorld">
@@ -161,11 +162,12 @@
                     <div id="nodesContainer" class="absolute inset-0"></div>
                     <!-- 맵 위 아바타 -->
                     <div id="avatarContainer" class="absolute" style="z-index: 50; transform: translate(-50%, -50%); transition: left 0.1s, top 0.1s;">
-                        <div id="mapAvatar" class="text-5xl drop-shadow-md" style="transform: translate(-50%, -50%);">🦌</div>
+                        <div id="mapAvatar"><img src="assets/eddie-3d.jpeg" alt="현재 위치의 에디"></div>
                     </div>
                 </div>
             </div>
 
+            </div>
             <!-- 하단 버튼 -->
             <div class="p-4 bg-white/95 backdrop-blur border-t border-slate-200 z-30">
                 <button type="button" id="btnEnterCurrentStage" onclick="enterStage()" class="duo-btn w-full bg-blue-500 hover:bg-blue-400 text-white font-black text-lg py-4 rounded-2xl">
@@ -177,7 +179,7 @@
         <!-- ================= 화면 3: 전투 & 팝업 피드백 ================= -->
         <div id="screenBattle" class="hidden flex-1 flex-col h-full bg-slate-50 p-4 justify-between relative">
             <div class="flex items-center justify-between pt-1 mb-2 shrink-0">
-                <button type="button" onclick="exitBattlePrompt(false)" class="text-slate-400 font-black text-xs px-2 py-1 hover:text-slate-600">✕ 도망</button>
+                <button type="button" onclick="exitBattlePrompt(false)" class="text-slate-400 font-black text-xs px-2 py-1 hover:text-slate-600">← 학습 지도</button>
                 <div class="flex space-x-1.5" id="battleProgressDots"></div>
                 <div class="flex flex-col items-end w-20">
                     <span class="text-[9px] font-black text-slate-500 mb-0.5 tracking-wider">HP</span>
@@ -209,7 +211,7 @@
 
             <!-- 공격 버튼 -->
             <div class="pt-2 shrink-0 z-10">
-                <button type="button" id="btnSubmitAnswer" onclick="handleAnswerSubmit()" class="duo-btn w-full bg-slate-300 text-slate-500 font-black text-lg py-4 rounded-2xl" disabled>공격하기 ⚔️</button>
+                <button type="button" id="btnSubmitAnswer" onclick="handleAnswerSubmit()" class="duo-btn w-full bg-slate-300 text-slate-500 font-black text-lg py-4 rounded-2xl" disabled>정답 확인하기</button>
             </div>
 
             <!-- 피드백 팝업 (해설 표시) -->
@@ -226,9 +228,9 @@
         <!-- ================= 스테이지 클리어 모달 ================= -->
         <div id="modalStageClear" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur z-50 flex items-center justify-center p-6">
             <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl border-4 border-amber-300">
-                <div class="text-6xl mb-2 animate-bounce drop-shadow-md">🦌🎉</div>
+                <div class="text-6xl mb-2 animate-bounce drop-shadow-md"><img class="result-deer" src="assets/eddie-3d.jpeg" alt="축하하는 에디"></div>
                 <h2 class="text-2xl font-black text-slate-800">스테이지 클리어!</h2>
-                <p class="text-xs font-bold text-slate-500 mb-6" id="clearSubtitle">지형 정복 완료</p>
+                <p class="text-xs font-bold text-slate-500 mb-6" id="clearSubtitle">오늘도 한 걸음 성장했어요</p>
 
                 <div class="grid grid-cols-2 gap-3 mb-6">
                     <div class="bg-amber-50 p-3 rounded-2xl border border-amber-200 shadow-inner">
@@ -247,13 +249,13 @@
         <!-- ================= 체력 소진 모달 ================= -->
         <div id="modalGameOver" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur z-50 flex items-center justify-center p-6">
             <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl border-4 border-rose-300">
-                <div class="text-6xl mb-4 animate-pulse">🦌💦</div>
-                <h2 class="text-2xl font-black text-slate-800 mb-2">체력 소진...</h2>
-                <p class="text-sm font-bold text-slate-500 mb-6">별 30개를 소모하여<br>현재 스테이지를 다시 도전하시겠습니까?</p>
+                <div class="text-6xl mb-4 animate-pulse"><img class="result-deer" src="assets/eddie-3d.jpeg" alt="다시 도전하는 에디"></div>
+                <h2 class="text-2xl font-black text-slate-800 mb-2">잠깐 쉬어가도 괜찮아</h2>
+                <p class="text-sm font-bold text-slate-500 mb-6">해설을 떠올리며 다시 도전해 보세요.<br>별을 쓰지 않고 다시 시작할 수 있어요.</p>
 
                 <div class="space-y-3">
-                    <button type="button" onclick="respawnStage()" class="duo-btn w-full bg-blue-500 hover:bg-blue-400 text-white font-black text-lg py-3.5 rounded-2xl">리스폰 (⭐ -30)</button>
-                    <button type="button" onclick="exitBattlePrompt(true)" class="duo-btn w-full bg-slate-200 hover:bg-slate-300 text-slate-600 font-black text-lg py-3.5 rounded-2xl">포기하고 마을로</button>
+                    <button type="button" onclick="respawnStage()" class="duo-btn w-full bg-blue-500 hover:bg-blue-400 text-white font-black text-lg py-3.5 rounded-2xl">다시 도전하기</button>
+                    <button type="button" onclick="exitBattlePrompt(true)" class="duo-btn w-full bg-slate-200 hover:bg-slate-300 text-slate-600 font-black text-lg py-3.5 rounded-2xl">학습 지도로 돌아가기</button>
                 </div>
             </div>
         </div>
@@ -532,9 +534,11 @@
 
             const container = document.getElementById('containerOptions'); container.innerHTML = '';
             q.options.forEach((opt, idx) => {
-                const optBtn = document.createElement('div');
+                const optBtn = document.createElement('button');
+                optBtn.type = 'button';
                 optBtn.className = 'option-card p-3.5 rounded-xl bg-white text-slate-800 font-bold text-sm shadow-sm';
                 optBtn.innerText = opt;
+                optBtn.setAttribute('aria-pressed','false');
                 optBtn.onclick = () => selectOption(idx, optBtn);
                 container.appendChild(optBtn);
             });
@@ -673,7 +677,7 @@
 
         function respawnStage() {
             document.getElementById('modalGameOver').classList.add('hidden');
-            userState.stars = Math.max(0, userState.stars - 30);
+            userState.stars = userState.stars;
             document.getElementById('labelTotalStars').innerText = userState.stars;
             userState.hp = 100; userState.stageCorrectCount = 0;
             const stageConfig = STAGE_CONFIG[userState.currentStage - 1];
@@ -717,5 +721,6 @@
             }
         });
     </script>
+<script src="experience.js"></script>
 </body>
 </html>
